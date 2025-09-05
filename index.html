@@ -3,24 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Autocomplete Comment Box</title>
+  <title>Comment Box Options</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
 
-  <div class="max-w-md w-full bg-white p-6 rounded-xl shadow-md">
-    <h1 class="text-lg font-semibold mb-4">Leave a Comment</h1>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl w-full p-6">
+    <!-- Option 1: Button Dropdown -->
+    <div class="bg-white p-6 rounded-xl shadow-md">
+      <h1 class="text-lg font-semibold mb-4">Option 1: Button Dropdown</h1>
+      <label for="comment1" class="block text-sm font-medium text-gray-700 mb-1">Your Comment</label>
+      <textarea id="comment1" rows="4" placeholder="Write your comment..."
+        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 mb-3"></textarea>
+      
+      <div class="relative">
+        <button id="toggleSuggestions1"
+          class="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-md shadow hover:bg-gray-200">Choose a predefined comment</button>
+        
+        <div id="suggestions1" class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden">
+          <div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="insertText1('this is my first comment')">this is my first comment</div>
+          <div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="insertText1('this is my second comment')">this is my second comment</div>
+          <div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="insertText1('this is my third comment')">this is my third comment</div>
+        </div>
+      </div>
+    </div>
 
-    <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">Your Comment</label>
-    <textarea id="comment" rows="4" placeholder="Write your comment..."
-      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
-    
-    <div id="suggestions" class="relative hidden">
-      <div id="suggestionList" class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg"></div>
+    <!-- Option 2: Autocomplete -->
+    <div class="bg-white p-6 rounded-xl shadow-md">
+      <h1 class="text-lg font-semibold mb-4">Option 2: Autocomplete (start typing)</h1>
+      <label for="comment2" class="block text-sm font-medium text-gray-700 mb-1">Your Comment</label>
+      <textarea id="comment2" rows="4" placeholder="Write your comment..."
+        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2"></textarea>
+      
+      <div id="suggestions2" class="relative hidden">
+        <div id="suggestionList2" class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg"></div>
+      </div>
     </div>
   </div>
 
   <script>
+    // Shared predefined comments
     const predefinedComments = [
       "this is my first comment",
       "this is my second comment",
@@ -30,16 +52,36 @@
       "This works perfectly for my needs"
     ];
 
-    const commentBox = document.getElementById('comment');
-    const suggestionsDiv = document.getElementById('suggestions');
-    const suggestionList = document.getElementById('suggestionList');
+    // Option 1: Button dropdown
+    const toggleBtn1 = document.getElementById('toggleSuggestions1');
+    const suggestions1 = document.getElementById('suggestions1');
 
-    commentBox.addEventListener('input', () => {
-      const inputValue = commentBox.value.toLowerCase();
-      suggestionList.innerHTML = '';
+    toggleBtn1.addEventListener('click', () => {
+      suggestions1.classList.toggle('hidden');
+    });
+
+    function insertText1(text) {
+      document.getElementById('comment1').value = text;
+      suggestions1.classList.add('hidden');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#suggestions1') && !e.target.closest('#toggleSuggestions1')) {
+        suggestions1.classList.add('hidden');
+      }
+    });
+
+    // Option 2: Autocomplete
+    const commentBox2 = document.getElementById('comment2');
+    const suggestionsDiv2 = document.getElementById('suggestions2');
+    const suggestionList2 = document.getElementById('suggestionList2');
+
+    commentBox2.addEventListener('input', () => {
+      const inputValue = commentBox2.value.toLowerCase();
+      suggestionList2.innerHTML = '';
 
       if (!inputValue) {
-        suggestionsDiv.classList.add('hidden');
+        suggestionsDiv2.classList.add('hidden');
         return;
       }
 
@@ -51,20 +93,20 @@
           div.className = 'p-2 hover:bg-gray-100 cursor-pointer';
           div.textContent = text;
           div.onclick = () => {
-            commentBox.value = text;
-            suggestionsDiv.classList.add('hidden');
+            commentBox2.value = text;
+            suggestionsDiv2.classList.add('hidden');
           };
-          suggestionList.appendChild(div);
+          suggestionList2.appendChild(div);
         });
-        suggestionsDiv.classList.remove('hidden');
+        suggestionsDiv2.classList.remove('hidden');
       } else {
-        suggestionsDiv.classList.add('hidden');
+        suggestionsDiv2.classList.add('hidden');
       }
     });
 
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('#suggestions') && !e.target.closest('#comment')) {
-        suggestionsDiv.classList.add('hidden');
+      if (!e.target.closest('#suggestions2') && !e.target.closest('#comment2')) {
+        suggestionsDiv2.classList.add('hidden');
       }
     });
   </script>
