@@ -22,11 +22,7 @@ jobs:
 
       - name: Run EPG downloader
         run: |
-          python3 download_epg.py --output epg_all.xml --overwrite
-
-      - name: Keep only compressed file
-        run: |
-          rm -f epg_all.xml
+          python3 download_epg.py --overwrite
 
       - name: Commit and push updated EPG
         run: |

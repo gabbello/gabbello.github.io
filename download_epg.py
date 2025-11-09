@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Download and merge EPG XML files from epgshare01.online.
 
-Downloads all EPG files (MN1, AE1, PL1, TR1, CZ1), extracts them, and merges into a single XML.
+Downloads all EPG files (MN1, AE1, PL1, TR1, CZ1), extracts them, and merges into a single XML.GZ.
 Channel entries are deduplicated by default (first occurrence kept).
 
 Usage:
   python download_epg.py
-  python download_epg.py --output epg_all.xml
-  python download_epg.py --output epg_all.xml --overwrite
+  python download_epg.py --output epg_all.xml.gz
+  python download_epg.py --output epg_all.xml.gz --overwrite
 """
 from __future__ import annotations
 
@@ -21,7 +21,6 @@ from io import BytesIO
 from typing import List, Optional, Set
 import xml.etree.ElementTree as ET
 
-# All EPG URLs to download and merge
 EPG_URLS = [
     "https://epgshare01.online/epgshare01/epg_ripper_MN1.xml.gz",
     "https://epgshare01.online/epgshare01/epg_ripper_AE1.xml.gz",
@@ -34,7 +33,6 @@ EPG_URLS = [
 
 
 def download_bytes(url: str, timeout: int = 30) -> Optional[bytes]:
-    """Download raw bytes from the URL. Returns bytes or None on error."""
     try:
         print(f"Downloading: {url}")
         with urllib.request.urlopen(url, timeout=timeout) as resp:
@@ -69,42 +67,36 @@ def extract_gzip(data: bytes) -> Optional[bytes]:
 
 
 def unify_xml_bytes_list(xml_bytes_list: List[bytes], output_path: str, overwrite: bool = False, dedupe_channels: bool = False) -> int:
-    # Determine xml and gzip target paths. If user passed a .gz name, derive base xml name.
-    if output_path.endswith(".gz"):
-        gz_path = output_path
-        xml_path = output_path[:-3]
-    else:
-        xml_path = output_path
-        gz_path = output_path + ".gz"
+    # Force .gz output
+    if not output_path.endswith(".gz"):
+        output_path += ".gz"
 
-    # If either target exists and overwrite not allowed, fail.
-    if (os.path.exists(xml_path) or os.path.exists(gz_path)) and not overwrite:
-        print(f"Error: output file '{xml_path}' or '{gz_path}' exists. Use --overwrite to replace.")
+    gz_path = output_path
+
+    if os.path.exists(gz_path) and not overwrite:
+        print(f"Error: output file '{gz_path}' exists. Use --overwrite to replace.")
         return 2
 
-    # Prepare output directory based on xml_path
-    out_dir = os.path.dirname(os.path.abspath(xml_path))
+    out_dir = os.path.dirname(os.path.abspath(gz_path))
     if out_dir and not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
 
     written_channel_ids: Set[str] = set()
-    
-    # Get root attributes from first file if possible
+
+    # Try to copy root attributes from first XML
     root_attribs = {}
     try:
         if xml_bytes_list and xml_bytes_list[0]:
             first_tree = ET.parse(BytesIO(xml_bytes_list[0]))
             root_attribs = dict(first_tree.getroot().attrib)
     except Exception:
-        pass  # Use empty attributes if first file can't be parsed
+        pass
 
-    # Write the uncompressed XML first
     try:
-        with open(xml_path, "w", encoding="utf-8") as out_fp:
-            # Write XML declaration and root start tag with attributes
-            out_fp.write('<?xml version="1.0" encoding="utf-8"?>\n')
+        with gzip.open(gz_path, "wb") as f_out:
+            f_out.write('<?xml version="1.0" encoding="utf-8"?>\n'.encode("utf-8"))
             attrs = "".join(f' {k}="{v}"' for k, v in root_attribs.items())
-            out_fp.write(f"<tv{attrs}>\n")
+            f_out.write(f"<tv{attrs}>\n".encode("utf-8"))
 
             for idx, data in enumerate(xml_bytes_list):
                 if not data:
@@ -113,49 +105,31 @@ def unify_xml_bytes_list(xml_bytes_list: List[bytes], output_path: str, overwrit
                 try:
                     tree = ET.parse(buf)
                     root = tree.getroot()
-                    
-                    # Process channel elements first
+
                     for elem in root.findall("channel"):
                         ch_id = elem.get("id", "")
                         if dedupe_channels and ch_id:
                             if ch_id in written_channel_ids:
-                                continue  # Skip duplicate
+                                continue
                             written_channel_ids.add(ch_id)
-                        
-                        # Convert to string while preserving pretty printing
-                        xml_str = ET.tostring(elem, encoding="unicode", method="xml")
-                        out_fp.write(xml_str + "\n")
-                    
-                    # Then process all programme elements
+                        f_out.write(ET.tostring(elem, encoding="utf-8"))
+                        f_out.write(b"\n")
+
                     for elem in root.findall("programme"):
-                        xml_str = ET.tostring(elem, encoding="unicode", method="xml")
-                        out_fp.write(xml_str + "\n")
-                        
+                        f_out.write(ET.tostring(elem, encoding="utf-8"))
+                        f_out.write(b"\n")
+
                 except ET.ParseError as e:
                     print(f"XML parse error in input #{idx}: {e}")
                     continue
 
-            out_fp.write("</tv>\n")
+            f_out.write(b"</tv>\n")
+
+        print(f"Wrote merged gzip XML to: {gz_path}")
+        return 0
     except Exception as e:
-        print(f"Failed to write XML '{xml_path}': {e}")
+        print(f"Failed to write gzip '{gz_path}': {e}")
         return 1
-
-    print(f"Wrote merged XML to: {xml_path}")
-
-    # Now create gzip version
-    try:
-        with open(xml_path, "rb") as f_in, gzip.open(gz_path, "wb") as f_out:
-            while True:
-                chunk = f_in.read(16 * 1024)
-                if not chunk:
-                    break
-                f_out.write(chunk)
-        print(f"Wrote gzip to: {gz_path}")
-    except Exception as e:
-        print(f"Failed to create gzip '{gz_path}': {e}")
-        return 1
-
-    return 0
 
 
 def download_and_unify(urls: List[str], output_path: str, timeout: int = 30, overwrite: bool = False, dedupe_channels: bool = False) -> int:
@@ -180,7 +154,7 @@ def download_and_unify(urls: List[str], output_path: str, timeout: int = 30, ove
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Download and merge EPG XML files from epgshare01.online")
-    p.add_argument("--output", "-o", default="epg_all.xml", help="Output merged XML path")
+    p.add_argument("--output", "-o", default="epg_all.xml.gz", help="Output merged gzip XML path")
     p.add_argument("--timeout", type=int, default=30, help="Network timeout in seconds")
     p.add_argument("--overwrite", action="store_true", help="Overwrite output if it exists")
     return p.parse_args(argv)
@@ -188,7 +162,6 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
 def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
-    # Always deduplicate channels and use all URLs
     return download_and_unify(EPG_URLS, args.output, timeout=args.timeout, overwrite=args.overwrite, dedupe_channels=True)
 
 
