@@ -29,6 +29,8 @@ EPG_URLS = [
     "https://epgshare01.online/epgshare01/epg_ripper_CZ1.xml.gz",
     "https://epgshare01.online/epgshare01/epg_ripper_IT1.xml.gz",
     "https://epgshare01.online/epgshare01/epg_ripper_UK1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_GR1.xml.gz",
+    "https://epgshare01.online/epgshare01/epg_ripper_NL1.xml.gz",
 ]
 
 
