@@ -26,6 +26,37 @@ jobs:
           python3 download_epg.py --overwrite
           python3 fetch_pluto.py
 
+      - name: Deploy generated EPG to gh-pages branch
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "Preparing deploy branch (gh-pages)"
+          # Create a clean temporary repo with only the generated files
+          rm -rf out || true
+          mkdir out
+          cd out
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Add remote using GITHUB_TOKEN so we can push
+          git remote add deploy "https://x-access-token:${TOKEN}@github.com/${REPO}.git"
+          # Create an orphan branch and remove any files
+          git checkout --orphan gh-pages
+          git rm -rf . || true
+          # Copy generated files from the workspace root
+          cp -v ../epg_all.xml.gz . || true
+          cp -v ../pluto.xml . || true
+          # If nothing to add, exit gracefully
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to deploy"
+            exit 0
+          fi
+          git commit -m "Deploy EPG (${{ github.run_id }}) $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          git push --force deploy gh-pages
+
       - name: Commit and push updated EPG
         run: |
           git config user.name "github-actions[bot]"
