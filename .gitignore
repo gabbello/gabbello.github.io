@@ -1,1 +1,4 @@
 .env
+epg_all.xml.gz
+my_epg.xml.gz
+pluto.xml

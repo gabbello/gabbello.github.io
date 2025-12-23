@@ -1,0 +1,2 @@
+# Track compressed EPG archives with Git LFS for future commits
+*.xml.gz filter=lfs diff=lfs merge=lfs -text
