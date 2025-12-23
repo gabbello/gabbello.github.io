@@ -55,10 +55,5 @@ jobs:
           git commit -m "Deploy EPG (${{ github.run_id }}) $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           git push --force deploy gh-pages
 
-      - name: Commit and push updated EPG
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add epg_all.xml.gz
-          git commit -m "Auto-update EPG ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))" || exit 0
-          git push
+      # No longer committing generated EPG to `main` to avoid storing large blobs.
+      # The generated file is deployed to `gh-pages` only.
