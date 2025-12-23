@@ -20,14 +20,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Run EPG downloader
+      - name: Run EPG downloaders
         run: |
+          set -euo pipefail
           python3 download_epg.py --overwrite
+          python3 fetch_pluto.py
 
       - name: Commit and push updated EPG
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add epg_all.xml.gz
+          git add epg_all.xml.gz pluto.xml
           git commit -m "Auto-update EPG ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))" || exit 0
           git push
